@@ -11,8 +11,11 @@ fn main() {
 
     if let Ok(lines) = read_lines(file_path) {
         // Consumes the iterator, returns an (Optional) String
-        for line in lines.flatten() {
-            println!("{}", line);
+        for line_read in lines {
+            match line_read {
+                Ok(line) => { println!("{}", line); }
+                Err(_) => { panic!(""); }
+            };
         }
     }
 }

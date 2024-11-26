@@ -1,4 +1,7 @@
 use std::env;
+use std::fs::File;
+use std::io::BufReader;
+use std::process::exit;
 
 use aoc::read_lines;
 
@@ -7,15 +10,19 @@ fn main() {
 
     let file_path = &args[1];
 
-    println!("Using file {file_path}");
-
-    if let Ok(lines) = read_lines(file_path) {
-        // Consumes the iterator, returns an (Optional) String
-        for line_read in lines {
-            match line_read {
-                Ok(line) => { println!("{}", line); }
-                Err(_) => { panic!(""); }
-            };
+    match read_lines(file_path) {
+        Ok(lines) => { 
+            calculate(lines);
+        }
+        Err(e) => {
+            eprintln!("Problem reading file {}: {}", file_path, e);
+            exit(1);
         }
     }
+}
+
+fn calculate(lines: std::io::Lines<BufReader<File>>) {
+    let _ = lines
+            .map(Result::unwrap)
+            .for_each(|x| println!("{x}"));
 }

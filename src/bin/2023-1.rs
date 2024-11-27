@@ -123,7 +123,7 @@ fn value_for_line_2(line: &str) -> i32 {
             break "9";
         }
     
-        start = &start[1..start.len()]; // this only works because the input is UTF-8
+        start = &start[1..start.len()]; // this only works because the input is ASCII
     };
 
     let right = loop {
@@ -147,8 +147,25 @@ fn value_for_line_2(line: &str) -> i32 {
             break "9";
         }
     
-        end = &end[0..end.len() - 1]; // this only works because the input is UTF-8
+        end = &end[0..end.len() - 1]; // this only works because the input is ASCII
     };
 
     format!("{}{}", left, right).parse().unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_example_1() -> std::io::Result<()> {
+        assert_eq!(calculate_1(read_lines(&"tst-input/2023-1-test-1.txt".to_string())?), 142);
+        Ok(())
+    }
+
+    #[test]
+    fn test_example_2() -> std::io::Result<()> {
+        assert_eq!(calculate_2(read_lines(&"tst-input/2023-1-test-2.txt".to_string())?), 281);
+        Ok(())
+    }
 }

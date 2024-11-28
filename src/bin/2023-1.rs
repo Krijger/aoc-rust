@@ -159,13 +159,13 @@ mod tests {
     
     #[test]
     fn test_example_1() -> std::io::Result<()> {
-        assert_eq!(calculate_1(read_lines(&"tst-input/2023-1-test-1.txt".to_string())?), 142);
+        assert_eq!(calculate_1(read_lines("input/2023-1-test-1.txt")?), 142);
         Ok(())
     }
 
     #[test]
     fn test_example_2() -> std::io::Result<()> {
-        assert_eq!(calculate_2(read_lines(&"tst-input/2023-1-test-2.txt".to_string())?), 281);
+        assert_eq!(calculate_2(read_lines("tst-input/2023-1-test-2.txt")?), 281);
         Ok(())
     }
 }

@@ -45,111 +45,73 @@ fn calculate_2(lines: impl Iterator<Item = Result<String>>) -> i32 {
 }
 
 fn value_for_line_1(line: &str) -> i32 {
-    let (mut start, mut end) = (line, line);
 
-    let left = loop {
-        if start.starts_with("1") {
-            break "1";
-        } else if start.starts_with("2") {
-            break "2";
-        } else if start.starts_with("3") {
-            break "3";
-        } else if start.starts_with("4") {
-            break "4";
-        } else if start.starts_with("5") {
-            break "5";
-        } else if start.starts_with("6") {
-            break "6";
-        } else if start.starts_with("7") {
-            break "7";
-        } else if start.starts_with("8") {
-            break "8";
-        } else if start.starts_with("9") {
-            break "9";
-        }
-    
-        start = &start[1..start.len()]; // this only works because the input is UTF-8
-    };
+    let digits = vec!["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
-    let right = loop {
-        if end.ends_with("1") {
-            break "1";
-        } else if end.ends_with("2") {
-            break "2";
-        } else if end.ends_with("3") {
-            break "3";
-        } else if end.ends_with("4") {
-            break "4";
-        } else if end.ends_with("5") {
-            break "5";
-        } else if end.ends_with("6") {
-            break "6";
-        } else if end.ends_with("7") {
-            break "7";
-        } else if end.ends_with("8") {
-            break "8";
-        } else if end.ends_with("9") {
-            break "9";
-        }
-    
-        end = &end[0..end.len() - 1]; // this only works because the input is UTF-8
-    };
+    let len = line.len();
+    let (mut left, mut right): (Option<&str>, Option<&str>) = (None, None);
 
-    format!("{}{}", left, right).parse().unwrap()
+    'outer: for i in 0..len {
+        let tail = &line[i..len]; // this only works because the input is ASCII
+        for &digit in &digits {
+            if tail.starts_with(digit) {
+                left = Some(digit);
+                break 'outer;
+            }
+        };
+    }
+
+    'outer: for i in 0..len {
+        let head = &line[0..len-i]; // this only works because the input is ASCII
+        for &digit in &digits {
+            if head.ends_with(digit) {
+                right = Some(digit);
+                break 'outer;
+            }
+        };
+    }
+
+    format!("{}{}", left.unwrap_or("0"), right.unwrap_or("0")).parse().unwrap()
 }
 
 fn value_for_line_2(line: &str) -> i32 {
-    let (mut start, mut end) = (line, line);
 
-    let left = loop {
-        if start.starts_with("1") || start.starts_with("one") {
-            break "1";
-        } else if start.starts_with("2") || start.starts_with("two") {
-            break "2";
-        } else if start.starts_with("3") || start.starts_with("three") {
-            break "3";
-        } else if start.starts_with("4") || start.starts_with("four") {
-            break "4";
-        } else if start.starts_with("5") || start.starts_with("five") {
-            break "5";
-        } else if start.starts_with("6") || start.starts_with("six") {
-            break "6";
-        } else if start.starts_with("7") || start.starts_with("seven") {
-            break "7";
-        } else if start.starts_with("8") || start.starts_with("eight") {
-            break "8";
-        } else if start.starts_with("9") || start.starts_with("nine") {
-            break "9";
-        }
-    
-        start = &start[1..start.len()]; // this only works because the input is ASCII
-    };
+    let digits = vec![
+        ("1", "one"),
+        ("2", "two"),
+        ("3", "three"),
+        ("4", "four"),
+        ("5", "five"),
+        ("6", "six"),
+        ("7", "seven"),
+        ("8", "eight"),
+        ("9", "nine"),
+    ];
 
-    let right = loop {
-        if end.ends_with("1") || end.ends_with("one") {
-            break "1";
-        } else if end.ends_with("2") || end.ends_with("two") {
-            break "2";
-        } else if end.ends_with("3") || end.ends_with("three") {
-            break "3";
-        } else if end.ends_with("4") || end.ends_with("four") {
-            break "4";
-        } else if end.ends_with("5") || end.ends_with("five") {
-            break "5";
-        } else if end.ends_with("6") || end.ends_with("six") {
-            break "6";
-        } else if end.ends_with("7") || end.ends_with("seven") {
-            break "7";
-        } else if end.ends_with("8") || end.ends_with("eight") {
-            break "8";
-        } else if end.ends_with("9") || end.ends_with("nine") {
-            break "9";
-        }
-    
-        end = &end[0..end.len() - 1]; // this only works because the input is ASCII
-    };
+    let len = line.len();
+    let (mut left, mut right): (Option<&str>, Option<&str>) = (None, None);
 
-    format!("{}{}", left, right).parse().unwrap()
+    'outer: for i in 0..len {
+        let tail = &line[i..len]; // this only works because the input is ASCII
+        for &digit in &digits {
+            if tail.starts_with(digit.0) || tail.starts_with(digit.1) {
+                left = Some(digit.0);
+                break 'outer;
+            }
+        };
+    }
+
+    'outer: for i in 0..len {
+        let head = &line[0..len-i]; // this only works because the input is ASCII
+        for &digit in &digits {
+            if head.ends_with(digit.0) || head.ends_with(digit.1) {
+                right = Some(digit.0);
+                break 'outer;
+            }
+        };
+    }
+
+    format!("{}{}", left.unwrap_or("0"), right.unwrap_or("0")).parse().unwrap()
 }
 
 #[cfg(test)]

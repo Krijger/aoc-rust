@@ -1,6 +1,5 @@
 use std::env;
-use std::fs::File;
-use std::io::BufReader;
+use std::io::Result;
 use std::process::exit;
 
 use aoc::read_lines;
@@ -31,14 +30,14 @@ fn main() {
     }
 }
 
-fn calculate_1(lines: std::io::Lines<BufReader<File>>) -> i32 {
+fn calculate_1(lines: impl Iterator<Item = Result<String>>) -> i32 {
     lines
         .map(Result::unwrap)
         .map(|line| value_for_line_1(&line))
         .sum()
 }
 
-fn calculate_2(lines: std::io::Lines<BufReader<File>>) -> i32 {
+fn calculate_2(lines: impl Iterator<Item = Result<String>>) -> i32 {
     lines
         .map(Result::unwrap)
         .map(|line| value_for_line_2(&line))
@@ -157,15 +156,37 @@ fn value_for_line_2(line: &str) -> i32 {
 mod tests {
     use super::*;
     
+    fn io_lines_from<'a>(input: &'a str) -> impl Iterator<Item = Result<String>> + 'a {
+        input.lines()
+            .map(|line| line.trim())
+            .filter(|&line| !line.is_empty())
+            .map(|line| Result::Ok(String::from(line)))
+    }
+
     #[test]
-    fn test_example_1() -> std::io::Result<()> {
-        assert_eq!(calculate_1(read_lines("input/2023-1-test-1.txt")?), 142);
+    fn test_example_1() -> Result<()> {
+        let input = "
+            1abc2
+            pqr3stu8vwx
+            a1b2c3d4e5f
+            treb7uchet
+        ";
+        assert_eq!(calculate_1(io_lines_from(input)), 142);
         Ok(())
     }
 
     #[test]
-    fn test_example_2() -> std::io::Result<()> {
-        assert_eq!(calculate_2(read_lines("tst-input/2023-1-test-2.txt")?), 281);
+    fn test_example_2() -> Result<()> {
+        let input = "
+            two1nine
+            eightwothree
+            abcone2threexyz
+            xtwone3four
+            4nineeightseven2
+            zoneight234
+            7pqrstsixteen
+        ";
+        assert_eq!(calculate_2(io_lines_from(input)), 281);
         Ok(())
     }
 }

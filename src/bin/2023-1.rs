@@ -117,13 +117,7 @@ fn value_for_line_2(line: &str) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    fn io_lines_from<'a>(input: &'a str) -> impl Iterator<Item = Result<String>> + 'a {
-        input.lines()
-            .map(|line| line.trim())
-            .filter(|&line| !line.is_empty())
-            .map(|line| Result::Ok(String::from(line)))
-    }
+    use aoc::test_util::io_lines_from;
 
     #[test]
     fn test_example_1() -> Result<()> {

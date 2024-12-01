@@ -16,3 +16,17 @@ where P: AsRef<Path>,
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
+
+
+// #[cfg(test)]
+pub mod test_util {
+    use std::io::Result;
+        
+    pub fn io_lines_from<'a>(input: &'a str) -> impl Iterator<Item = Result<String>> + 'a {
+        input.lines()
+            .map(|line| line.trim())
+            .filter(|&line| !line.is_empty())
+            .map(|line| Result::Ok(String::from(line)))
+    }
+
+}

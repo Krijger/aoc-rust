@@ -22,7 +22,7 @@ where P: AsRef<Path>,
 pub mod test_util {
     use std::io::Result;
         
-    pub fn io_lines_from<'a>(input: &'a str) -> impl Iterator<Item = Result<String>> + 'a {
+    pub fn io_lines_from(input: &str) -> impl Iterator<Item = Result<String>> + '_ {
         input.lines()
             .map(|line| line.trim())
             .filter(|&line| !line.is_empty())

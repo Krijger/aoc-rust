@@ -10,7 +10,7 @@ fn main() {
 
     match read_lines(file_path) {
         Ok(lines) => { 
-            println!("Answer 1: {}", calculate_a(lines));
+            println!("Answer A: {}", calculate_a(lines));
         }
         Err(e) => {
             eprintln!("Problem reading file {}: {}", file_path, e);
@@ -20,7 +20,7 @@ fn main() {
 
     match read_lines(file_path) {
         Ok(lines) => { 
-            println!("Answer 1: {}", calculate_b(lines));
+            println!("Answer B: {}", calculate_b(lines));
         }
         Err(e) => {
             eprintln!("Problem reading file {}: {}", file_path, e);

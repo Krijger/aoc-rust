@@ -1,5 +1,5 @@
 use std::fs::{metadata, File};
-use std::io::{self, BufRead, Error};
+use std::io::{self, BufRead, Error, Read};
 use std::path::Path;
 
 // The output is wrapped in a Result to allow matching on errors.
@@ -15,6 +15,23 @@ where P: AsRef<Path>,
 
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
+}
+
+pub fn read_string<P>(filename: P) -> io::Result<String>
+where P: AsRef<Path>,
+{
+    match metadata(&filename) {
+        Ok(meta) if meta.is_file() => (),
+        Ok(_) => return Err(Error::new(io::ErrorKind::Unsupported, "Expected a file, but got a directory")),
+        Err(e) => return Err(Error::new(io::ErrorKind::Other, e)),
+    }
+
+    let file = File::open(filename)?;
+    let mut output = String::new();
+    match io::BufReader::new(file).read_to_string(&mut output) {
+        Err(e) => { Err(e) }
+        Ok(_) => Ok(output)
+    }
 }
 
 

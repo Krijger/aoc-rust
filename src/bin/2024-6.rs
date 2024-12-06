@@ -45,41 +45,42 @@ struct LabMap {
     map_size: (usize, usize),
 }
 
+impl LabMap {
+    pub fn new(lines: impl Iterator<Item = Result<String, std::io::Error>>) -> Self {
+        let mut obstacles: HashSet<(usize, usize)> = HashSet::new();
+        let mut starting_pos = (0, 0);
+        let mut map_size = (0, 0);
+    
+        // parse input
+        for (y, line) in lines.map(Result::unwrap).enumerate() {
+            for (x, c) in line.chars().enumerate() {
+                if y == 0 {
+                    map_size.0 = x;
+                }
+                if c == '#' { 
+                    obstacles.insert((x, y));
+                }
+                if c == '^' {
+                    starting_pos = (x, y);
+                }
+            }
+            map_size.1 = y;
+        }
+        LabMap {obstacles, starting_pos, map_size }
+    }
+}
+
 fn calculate(lines: impl Iterator<Item = std::io::Result<String>>) -> (usize, usize) {
-    let lab = parse_lines(lines);
+    let lab = LabMap::new(lines);
 
-    let travelled = path(&lab, None).0;
-    let answer_a = travelled.len();
+    let travelled_path = path(&lab, None).0;
+    let answer_a = travelled_path.len();
 
-    let loop_options = travelled.iter().filter(|&&object| {
+    let loop_options = travelled_path.iter().filter(|&&object| {
         path(&lab, Some(object)).1
     }).count();
 
     (answer_a, loop_options)
-}
-
-
-fn parse_lines(lines: impl Iterator<Item = Result<String, std::io::Error>>) -> LabMap {
-    let mut obstacles: HashSet<(usize, usize)> = HashSet::new();
-    let mut starting_pos = (0, 0);
-    let mut map_size = (0, 0);
-
-    // parse input
-    for (y, line) in lines.map(Result::unwrap).enumerate() {
-        for (x, c) in line.chars().enumerate() {
-            if y == 0 {
-                map_size.0 = x;
-            }
-            if c == '#' { 
-                obstacles.insert((x, y));
-            }
-            if c == '^' {
-                starting_pos = (x, y);
-            }
-        }
-        map_size.1 = y;
-    }
-    LabMap {obstacles, starting_pos, map_size }
 }
 
 // returns the travel path of the guard, and whether that path is a loop

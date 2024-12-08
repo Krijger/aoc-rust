@@ -49,7 +49,7 @@ fn calculate(lines: impl Iterator<Item = std::io::Result<String>>) -> (usize, us
     let mut antinodes_b: HashSet<Coord> = HashSet::new();
     for (_, ants_of_freq) in roof.antennas {
         for mut pair in ants_of_freq.iter().permutations(2) { // (a,b) and (b,a) are both generated
-            let mut a = pair.pop().unwrap();
+            let a = pair.pop().unwrap();
             let b = pair.pop().unwrap();
             let diff_x = b.x as i32 - a.x as i32;
             let diff_y = b.y as i32 - a.y as i32;
@@ -64,9 +64,15 @@ fn calculate(lines: impl Iterator<Item = std::io::Result<String>>) -> (usize, us
                 }
             }
             
-            match next(a, &diff_x, &diff_y, &roof.map_size) {
-                Some(coord) => { antinodes_a.insert(coord); },
-                None => {},
+            let mut z = next(a, &diff_x, &diff_y, &roof.map_size);
+            if let Some(coord) = z { 
+                antinodes_a.insert(coord); 
+            }
+
+            antinodes_b.insert(*a);
+            while let Some(coord) = z {
+                antinodes_b.insert(coord);
+                z = next(&coord, &diff_x, &diff_y, &roof.map_size);
             }
 
         }
@@ -113,7 +119,7 @@ mod tests {
 
     #[test]
     fn test() -> std::io::Result<()> {
-        assert_eq!(calculate(io_lines_from(INPUT)), (14, 0));
+        assert_eq!(calculate(io_lines_from(INPUT)), (14, 34));
         Ok(())
     }
 }

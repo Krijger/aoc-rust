@@ -33,7 +33,7 @@ impl Machine {
     (p2 - y b1) a0 / a1 + y b0 = p1
     a0 p2 / a1 - y b1 a0 / a1 + y b0 = p1
     y ( b0 - b1 a0 / a1 ) = p1 - a0 p2 / a1
-    y = (p1 - a0 p2 / a1) / (b0 - b1 a0 / a1)   (4)
+    y = (p1 - p2 a0 / a1) / (b0 - b1 a0 / a1)   (4)
 
     // and remember (3) to find x
     x = (p2 - y b1) / a1
@@ -42,7 +42,7 @@ impl Machine {
         let (p1, p2) = (self.p.0 as f64, self.p.1 as f64);
         let (a0, a1) = (self.a.0 as f64, self.a.1 as f64);
         let (b0, b1) = (self.b.0 as f64, self.b.1 as f64);
-        let y = (p1 - a0 * p2 / a1) / (b0 - b1 * a0 / a1);
+        let y = (p1 - p2 * a0 / a1) / (b0 - b1 * a0 / a1);
         let x = (p2 - y * b1) / a1;
         if ((x - (x as u64) as f64) < 0.001 || ((x - (x as u64) as f64) > 0.999)) 
         && ((y - (y as u64) as f64) < 0.001 || ((y - (y as u64) as f64) > 0.999)) {

@@ -1,82 +1,48 @@
+use std::collections::HashMap;
 use std::env;
 use std::process::exit;
 
-fn calculate(stone_str: &str, max_rank: usize) -> u64 {
+fn calculate(input: &str, max_rank: usize) -> u64 {
 
-    // let mut v: Vec<(usize, &str)> = stone_str.split_ascii_whitespace().map(|s| {
-    //     (0, s)
-    // }).collect();
+    let mut stones: HashMap<u64, u64> = HashMap::new();
+    input.split_ascii_whitespace()
+        .map(|s| s.parse::<u64>().unwrap())
+        .for_each(|x| {
+            stones.insert(x, stones.get(&x).unwrap_or(&0) + 1);
+        });
 
-    // let mut n = 0;
-    // while let Some((rank, stone)) = v.pop() {
-    //     if rank == 25 {
-    //         n += 1;
-    //     } else {
-    //         match stone {
-    //             "0" => {
-    //                 v.push((rank + 1, "1"));
-    //             }
-    //             _ if stone.len() % 2 == 0 => {
-    //                 let len = stone.len() / 2;
-    //                 v.push((rank + 1, &stone[..len]));
-    //                 let mut right = &stone[(len + 1)..];
-    //                 while right.len() > 1 && right.starts_with("0") {
-    //                     right = &right[1..];
-    //                 }
-    //                 v.push((rank + 1, right));
-    //             }
-    //             _ => {
-    //                 let new_num: u32 = stone.parse::<u32>().unwrap() * 2024;
-    //                 let new = new_num.to_string();
-    //                 v.push((rank + 1, &new));
-    //             }
-    //         }
-    //     }
-    // }
-
-    let mut v: Vec<(usize, String)> = stone_str.split_ascii_whitespace().map(|s| {
-        (0, String::from(s))
-    }).collect();
-
-    let mut n = 0;
-    while let Some((rank, stone)) = v.pop() {
-        if rank == max_rank {
-            // println!("{}", stone);
-            n += 1;
-        } else {
-            if stone == String::from("0") {
-                v.push((rank + 1, String::from("1")));
-            } else if &stone.len() % 2 == 0 {
-                let len = stone.len() / 2;
-                v.push((rank + 1, String::from(&stone[..len])));
-                let mut right = &stone[len..];
-                while right.len() > 1 && right.starts_with("0") { // remove leading 0's
-                    right = &right[1..];
-                }
-                v.push((rank + 1, String::from(right)));
-            } else {
-                let new_num: u64 = stone.parse::<u64>().unwrap() * 2024;
-                let new = new_num.to_string();
-                v.push((rank + 1, new));
+    for _ in 0..max_rank {
+        let mut new_stones: HashMap<u64, u64> = HashMap::new();
+        for (stone, count) in stones.iter() {
+            let stone_str = stone.to_string();
+            let stones_after: Vec<u64> = 
+                if *stone == 0 {
+                    vec![1]
+                } else if stone_str.len() % 2 == 0 {
+                    let len = stone_str.len() / 2;
+                    vec![stone_str[..len].parse::<u64>().unwrap(), stone_str[len..].parse::<u64>().unwrap()]
+                } else {
+                    vec![stone * 2024]
+                };
+            for new_stone in stones_after {
+                new_stones.insert(new_stone, new_stones.get(&new_stone).unwrap_or(&0) + count);
             }
         }
+        stones = new_stones;
     }
-    n
+    stones.values().sum()
 }
 
 fn main() {
-    let start = std::time::Instant::now();
     let args: Vec<String> = env::args().collect();
     let file_path = &args[1];
-
+    
     match aoc::read_string(file_path) {
         Ok(line) => { 
+            let start = std::time::Instant::now();
             println!("Answer A: {}", calculate(&line, 25));
             println!("Answer B: {}", calculate(&line, 75));
-            // for i in 0..26 {
-            //     println!("Answer A: {}: {}", i, calculate("2 54 992917 5270417 2514 28561 0 990", i));
-            // }
-            
+            println!("Time elapsed in expensive_function() is: {:?}", start.elapsed());
         }
         Err(e) => {
             eprintln!("Problem reading file {}: {}", file_path, e);
@@ -84,7 +50,6 @@ fn main() {
         }
     }
 
-    println!("Time elapsed in expensive_function() is: {:?}", start.elapsed());
 }
 
 #[cfg(test)]

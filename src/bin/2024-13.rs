@@ -95,7 +95,7 @@ fn parse_machines(lines: impl Iterator<Item = Result<String, std::io::Error>>) -
                 let parsed = (x.parse().unwrap(), y.parse().unwrap());
                 prizes.push(parsed);
             },
-            _ => { }, // empty line
+            _ => { panic!("This really should not happen") },
         }
     });
     for i in 0..a_buts.len() {

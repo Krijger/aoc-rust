@@ -1,3 +1,5 @@
+pub mod map;
+
 use std::fs::{metadata, File};
 use std::io::{self, BufRead, Error, Read};
 use std::path::Path;

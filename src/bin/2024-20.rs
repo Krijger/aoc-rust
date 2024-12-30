@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::process::exit;
 
@@ -9,6 +9,8 @@ pub struct Graph<T: PartialEq> {
     nodes: Vec<T>,
     edges: Vec<(T, T, usize)>,
 }
+
+type Point = (usize, usize);
 
 impl <T: PartialEq> Graph<T> {
     fn new() -> Self {
@@ -27,7 +29,7 @@ impl <T: PartialEq> Graph<T> {
     }
 }
 
-fn graph_from_map(map: &Mapp<char>) -> Graph<(usize, usize)> {
+fn graph_from_map(map: &Mapp<char>) -> Graph<Point> {
     let mut graph = Graph::new();
     let height = map.height();
     let width = map.width();
@@ -64,32 +66,35 @@ fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>) -> usi
 
     println!("Graph has {} nodes and {} edges", graph.nodes.len(), graph.edges.len());
 
-    let mut distances: HashMap<&(usize, usize), usize> = HashMap::new();
-    let mut visits: HashMap<&(usize, usize), bool> = HashMap::new();
+    let mut distances: HashMap<&Point, usize> = HashMap::new();
+    let mut unvisited: HashSet<&Point> = HashSet::new();
     for node in &graph.nodes {
         distances.insert(node, if node == start { 0 } else {usize::MAX });
-        visits.insert(node, false);
+        unvisited.insert(node);
     }
     
-    while visits.values().any(|visited| !visited) {
-        let current = distances.iter()
-                                    .filter(|&(node, _)| !*visits.get(node).unwrap() )
-                                    .fold((&(usize::MAX, usize::MAX), usize::MAX), |acc, x| if *x.1 < acc.1 { (*x.0, *x.1) } else { acc })
-                                    .0;
+    while !unvisited.is_empty() {
+        let current = unvisited_node_with_min_dist(&distances, &unvisited);
         for (to, w) in graph.connections(current) {
             let curr_dist = distances.get(current).unwrap();
-            if !visits.get(to).unwrap() {
+            if unvisited.contains(to) {
                 let to_distance = curr_dist + w;
                 if to_distance < *distances.get(to).unwrap() {
                     distances.insert(to, to_distance);
                 }
             }
-            visits.insert(current, true);
-
+            unvisited.remove(current);
         }
     }
 
     *distances.get(end).unwrap()
+}
+
+fn unvisited_node_with_min_dist<'a>(distances: &HashMap<&'a Point, usize>, unvisited: &HashSet<&Point>) -> &'a Point {
+    distances.iter()
+        .filter(|&(node, _)| unvisited.contains(node) )
+        .fold((&(usize::MAX, usize::MAX), usize::MAX), |acc, x| if *x.1 < acc.1 { (*x.0, *x.1) } else { acc })
+        .0
 }
 
 fn main() {

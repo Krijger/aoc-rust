@@ -90,9 +90,9 @@ fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>) -> usi
     *distances.get(end).unwrap()
 }
 
-fn unvisited_node_with_min_dist<'a>(distances: &HashMap<&'a Point, usize>, unvisited: &HashSet<&Point>) -> &'a Point {
-    distances.iter()
-        .filter(|&(node, _)| unvisited.contains(node) )
+fn unvisited_node_with_min_dist<'a>(distances: &HashMap<&'a Point, usize>, unvisited: &HashSet<&'a Point>) -> &'a Point {
+    unvisited.iter()
+        .map(|unvisited_point| (unvisited_point, distances.get(unvisited_point).unwrap()))
         .fold((&(usize::MAX, usize::MAX), usize::MAX), |acc, x| if *x.1 < acc.1 { (*x.0, *x.1) } else { acc })
         .0
 }

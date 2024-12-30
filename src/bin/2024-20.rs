@@ -74,16 +74,17 @@ fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>) -> usi
     }
     
     while !unvisited.is_empty() {
-        let current = unvisited_node_with_min_dist(&distances, &unvisited);
-        for (to, w) in graph.connections(current) {
-            let curr_dist = distances.get(current).unwrap();
+        let current_node = unvisited_node_with_min_dist(&distances, &unvisited);
+        unvisited.remove(current_node);
+
+        for (to, w) in graph.connections(current_node) {
+            let curr_dist = distances.get(current_node).unwrap();
             if unvisited.contains(to) {
                 let to_distance = curr_dist + w;
                 if to_distance < *distances.get(to).unwrap() {
                     distances.insert(to, to_distance);
                 }
             }
-            unvisited.remove(current);
         }
     }
 

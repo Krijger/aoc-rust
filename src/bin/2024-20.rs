@@ -4,7 +4,20 @@ use std::process::exit;
 
 use aoc::map::{read_map, Mapp};
 
-/// A non-directed graph, user must make sure not to insert edges (n1, n2) and (n2, n1)
+/// A non-directed graph, user must make sure not to insert edges (n1, n2) and (n2, n1). In
+/// ```
+/// pub struct Graph<T: PartialEq> {
+///     nodes: Vec<T>,
+///     edges: Vec<(T, T, usize)>,
+/// }
+/// ```
+/// The `edges` contain copies of `T` already present in `nodes`, so there is a lot of Eq-ing, Hash-ing and such.
+/// Profiling the code clearly showed this.
+/// Changing the edges to contain references to the nodes is not possible due to
+/// https://stackoverflow.com/questions/32300132/why-cant-i-store-a-value-and-a-reference-to-that-value-in-the-same-struct
+/// https://stackoverflow.com/questions/28608823/how-to-model-complex-recursive-data-structures-graphs
+/// so the alternative is to make a struct owning the nodes and methods to the needed graphing
+/// specifically optimised for out algorithm.
 pub struct Graph<T: PartialEq> {
     nodes: Vec<T>,
     edges: Vec<(T, T, usize)>,

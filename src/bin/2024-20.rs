@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
 use std::env;
 use std::process::exit;
+use std::ptr::eq;
 
 use aoc::map::{read_map, Mapp};
 
@@ -18,16 +18,12 @@ use aoc::map::{read_map, Mapp};
 /// https://stackoverflow.com/questions/28608823/how-to-model-complex-recursive-data-structures-graphs
 /// so the alternative is to make a struct owning the nodes and methods to the needed graphing
 /// specifically optimised for out algorithm.
-pub struct Graph<T> where 
-    T: PartialEq,
+pub struct Graph<T>
 {
     nodes: Vec<T>,
 }
 
-impl <T> Graph<T> where 
-    T: PartialEq,
-    T: Eq, // TODO: investigate if this is needed (for Dijkstra), with reference comparison as alternative
-    T: std::hash::Hash,
+impl <T> Graph<T>
 {
     fn new() -> Self {
         Graph { nodes: Vec::new() }
@@ -36,46 +32,59 @@ impl <T> Graph<T> where
     fn connections<W>(&self, from: &T, weigth: &W) -> Vec<(&T, usize)> where 
         W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
     {
-        self.nodes.iter().filter_map(|n| match weigth(from, n) {
-            Some(w) => Some((n, w)),
-            None => None,
-        }).collect()
+        self.nodes.iter()
+        .filter_map(|n| weigth(from, n).map(|w| (n, w)))
+        .collect()
     }
 
-    /// Dijkstra's algorithm to calculate minumum distance between `from` and `to`
-    fn minimum_distance<W>(&self, from: &T, to: &T, weight: &W) -> usize where 
+    /// Dijkstra's algorithm to calculate minumum distance between `start` and `end`.
+    /// Uses https://doc.rust-lang.org/std/ptr/fn.eq.html internally to compare &Ts, which is why the start and end
+    /// are supplied as functions (because raw pointers should point to graph.nodes entries, which could easily be
+    /// mistaken) - in case is_start / is_end does not return true for any graph node, this function will panic
+    fn minimum_distance<S, E, W>(&self, is_start: S, is_end: E, weight: W) -> usize where
+        S: Fn(&T) -> bool,
+        E: Fn(&T) -> bool,
         W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
     {
-        let mut distances: HashMap<&T, usize> = HashMap::new();
-        let mut unvisiteds: HashSet<&T> = HashSet::new();
-        for node in &self.nodes {
-            distances.insert(node, if node == from { 0 } else {usize::MAX });
-            unvisiteds.insert(node);
-        }
-        
-        while !unvisiteds.is_empty() {
-            let current_node = *unvisiteds.iter()
-                .map(|unvisited| (unvisited, distances.get(unvisited).unwrap()))// TODO: this map can be removed
-                .fold((None, usize::MAX),
-                    |(closest, smallest_dist), (unvisited, dist)| {
-                        if *dist < smallest_dist { (Some(unvisited), *dist) } else { (closest, smallest_dist) }
-                    }
-                )
-                .0.unwrap();
-            unvisiteds.remove(current_node);
+        // `table` contains references to all nodes (table.0), and as prescribed by the Dijkstra's algorithm:
+        // a distance (table.1), and the visited status (table.2)
+        let mut table: Vec<(&T, usize, bool)> = self.nodes.iter()
+            .map(|n| (n, usize::MAX, false))
+            .collect();
 
-            for (to, w) in self.connections(current_node, weight) {
-                let curr_dist = distances.get(current_node).unwrap();
-                if unvisiteds.contains(to) {
-                    let to_distance = curr_dist + w;
-                    if to_distance < *distances.get(to).unwrap() {
-                        distances.insert(to, to_distance);
+        let start_index = table.iter().position(|(n, _, _)| is_start(n)).unwrap();
+        table[start_index].1 = 0;
+        
+        while table.iter().any(|(_, _, visited)| !visited) {
+            let current_node = table.iter()
+                .filter(|(_, _, visited)| !visited )
+                .fold((None, usize::MAX),
+                    |(min_dist_node, min_dist), (n, d, _)| {
+                        if *d < min_dist { (Some(*n), *d) } 
+                        else { (min_dist_node, min_dist) }
+                })
+                .0.unwrap();
+
+            let current_node_index = table.iter().position(|(n, _, _)| eq(*n, current_node)).unwrap();
+            table[current_node_index].2 = true;
+
+            // for all connections to current node, check if the route via the current node is the first or
+            // in case a route already exists, whether the current route is shorter. In both cases, update
+            // the distance of the connected node in our table
+            let curr_dist = table[current_node_index].1;
+            for (to, w) in self.connections(current_node, &weight) {
+                let to_node_index = table.iter().position(|(n, _, _)| eq(*n, to)).unwrap();
+                if !table[to_node_index].2 {
+                    let to_distance_via_curr_node = curr_dist + w;
+                    if to_distance_via_curr_node < table[to_node_index].1 {
+                        table[to_node_index].1 = to_distance_via_curr_node;
                     }
                 }
             }
         }
 
-        *distances.get(to).unwrap()
+        let end_index = table.iter().position(|(n, _, _)| is_end(n)).unwrap();
+        table[end_index].1
     }
 }
 
@@ -105,16 +114,19 @@ fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>) -> usi
 
     println!("Graph has {} nodes", graph.nodes.len());
 
-    fn weight(from: &Point, to: &Point) -> Option<usize> {
-        if (from.0 == to.0 && from.1.abs_diff(to.1) == 1)
-        || (from.1 == to.1 && from.0.abs_diff(to.0) == 1) {
+    let weight = |start: &Point, to: &Point| -> Option<usize> {
+        if (start.0 == to.0 && start.1.abs_diff(to.1) == 1)
+        || (start.1 == to.1 && start.0.abs_diff(to.0) == 1) {
             Some(1)
         } else {
             None
         }
-    }
+    };
 
-    graph.minimum_distance(start, end, &weight)
+    graph.minimum_distance(
+        |p| p.0 == start.0 && p.1 == start.1,
+        |p| p.0 == end.0 && p.1 == end.1,
+        weight)
 }
 
 fn main() {

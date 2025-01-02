@@ -18,29 +18,68 @@ use aoc::map::{read_map, Mapp};
 /// https://stackoverflow.com/questions/28608823/how-to-model-complex-recursive-data-structures-graphs
 /// so the alternative is to make a struct owning the nodes and methods to the needed graphing
 /// specifically optimised for out algorithm.
-pub struct Graph<T: PartialEq> {
+pub struct Graph<T> where 
+    T: PartialEq,
+{
     nodes: Vec<T>,
-    edges: Vec<(T, T, usize)>,
+}
+
+impl <T> Graph<T> where 
+    T: PartialEq,
+    T: Eq, // TODO: investigate if this is needed (for Dijkstra), with reference comparison as alternative
+    T: std::hash::Hash,
+{
+    fn new() -> Self {
+        Graph { nodes: Vec::new() }
+    }
+    
+    fn connections<W>(&self, from: &T, weigth: &W) -> Vec<(&T, usize)> where 
+        W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
+    {
+        self.nodes.iter().filter_map(|n| match weigth(from, n) {
+            Some(w) => Some((n, w)),
+            None => None,
+        }).collect()
+    }
+
+    /// Dijkstra's algorithm to calculate minumum distance between `from` and `to`
+    fn minimum_distance<W>(&self, from: &T, to: &T, weight: &W) -> usize where 
+        W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
+    {
+        let mut distances: HashMap<&T, usize> = HashMap::new();
+        let mut unvisiteds: HashSet<&T> = HashSet::new();
+        for node in &self.nodes {
+            distances.insert(node, if node == from { 0 } else {usize::MAX });
+            unvisiteds.insert(node);
+        }
+        
+        while !unvisiteds.is_empty() {
+            let current_node = *unvisiteds.iter()
+                .map(|unvisited| (unvisited, distances.get(unvisited).unwrap()))// TODO: this map can be removed
+                .fold((None, usize::MAX),
+                    |(closest, smallest_dist), (unvisited, dist)| {
+                        if *dist < smallest_dist { (Some(unvisited), *dist) } else { (closest, smallest_dist) }
+                    }
+                )
+                .0.unwrap();
+            unvisiteds.remove(current_node);
+
+            for (to, w) in self.connections(current_node, weight) {
+                let curr_dist = distances.get(current_node).unwrap();
+                if unvisiteds.contains(to) {
+                    let to_distance = curr_dist + w;
+                    if to_distance < *distances.get(to).unwrap() {
+                        distances.insert(to, to_distance);
+                    }
+                }
+            }
+        }
+
+        *distances.get(to).unwrap()
+    }
 }
 
 type Point = (usize, usize);
-
-impl <T: PartialEq> Graph<T> {
-    fn new() -> Self {
-        Graph { nodes: Vec::new(), edges: Vec::new()}
-    }
-    fn connections(&self, from: &T) -> Vec<(&T, &usize)> {
-        let mut conns = Vec::new();
-        for edge in &self.edges {
-            match edge {
-                (n, to, w) if n == from => conns.push((to, w)),
-                (to, n, w) if n == from => conns.push((to, w)),
-                _ => {},
-            }
-        }
-        conns
-    }
-}
 
 fn graph_from_map(map: &Mapp<char>) -> Graph<Point> {
     let mut graph = Graph::new();
@@ -54,19 +93,6 @@ fn graph_from_map(map: &Mapp<char>) -> Graph<Point> {
             }
         }
     }
-    for y in 0..height {
-        for x in 0..width {
-            if !graph.nodes.contains(&(x, y)) {
-                continue;
-            }
-            if x > 0 && graph.nodes.contains(&(x - 1, y)) {
-                graph.edges.push(((x - 1, y), (x,y), 1));
-            }
-            if y > 0 && graph.nodes.contains(&(x, y - 1)) {
-                graph.edges.push(((x, y - 1), (x,y), 1));
-            }
-        }
-    }
     graph
 }
 
@@ -77,38 +103,18 @@ fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>) -> usi
     let end = &map.find(|x| *x == 'E').unwrap();
     let graph = graph_from_map(&map);
 
-    println!("Graph has {} nodes and {} edges", graph.nodes.len(), graph.edges.len());
+    println!("Graph has {} nodes", graph.nodes.len());
 
-    let mut distances: HashMap<&Point, usize> = HashMap::new();
-    let mut unvisited: HashSet<&Point> = HashSet::new();
-    for node in &graph.nodes {
-        distances.insert(node, if node == start { 0 } else {usize::MAX });
-        unvisited.insert(node);
-    }
-    
-    while !unvisited.is_empty() {
-        let current_node = unvisited_node_with_min_dist(&distances, &unvisited);
-        unvisited.remove(current_node);
-
-        for (to, w) in graph.connections(current_node) {
-            let curr_dist = distances.get(current_node).unwrap();
-            if unvisited.contains(to) {
-                let to_distance = curr_dist + w;
-                if to_distance < *distances.get(to).unwrap() {
-                    distances.insert(to, to_distance);
-                }
-            }
+    fn weight(from: &Point, to: &Point) -> Option<usize> {
+        if (from.0 == to.0 && from.1.abs_diff(to.1) == 1)
+        || (from.1 == to.1 && from.0.abs_diff(to.0) == 1) {
+            Some(1)
+        } else {
+            None
         }
     }
 
-    *distances.get(end).unwrap()
-}
-
-fn unvisited_node_with_min_dist<'a>(distances: &HashMap<&'a Point, usize>, unvisited: &HashSet<&'a Point>) -> &'a Point {
-    unvisited.iter()
-        .map(|unvisited_point| (unvisited_point, distances.get(unvisited_point).unwrap()))
-        .fold((&(usize::MAX, usize::MAX), usize::MAX), |acc, x| if *x.1 < acc.1 { (*x.0, *x.1) } else { acc })
-        .0
+    graph.minimum_distance(start, end, &weight)
 }
 
 fn main() {

@@ -25,7 +25,7 @@ impl <T> Graph<T>
         .collect()
     }
 
-    pub fn minimum_distance<S, E, W>(&self, is_start: S, is_end: E, weight: W) -> usize where
+    pub fn minimum_distance<S, E, W>(&self, is_start: S, is_end: E, weight: W) -> Option<usize> where
         S: Fn(&T) -> bool,
         E: Fn(&T) -> bool,
         W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
@@ -37,7 +37,7 @@ impl <T> Graph<T>
     /// Uses https://doc.rust-lang.org/std/ptr/fn.eq.html internally to compare &Ts, which is why the start and end
     /// are supplied as functions (because raw pointers should point to graph.nodes entries, which could easily be
     /// mistaken) - in case is_start / is_end does not return true for any graph node, this function will panic
-    pub fn minimum_distance_bounded<S, E, W>(&self, is_start: S, is_end: E, weight: W, lower_bound: usize) -> usize where
+    pub fn minimum_distance_bounded<S, E, W>(&self, is_start: S, is_end: E, weight: W, lower_bound: usize) -> Option<usize> where
         S: Fn(&T) -> bool,
         E: Fn(&T) -> bool,
         W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
@@ -54,36 +54,43 @@ impl <T> Graph<T>
         table[start_index].1 = 0;
         
         while table.iter().any(|(_, _, visited)| !visited) {
-            let current_node = table.iter()
+            if let Some(current_node) = table.iter()
                 .filter(|(_, _, visited)| !visited )
                 .fold((None, usize::MAX),
                     |(min_dist_node, min_dist), (n, d, _)| {
                         if *d < min_dist { (Some(*n), *d) } 
                         else { (min_dist_node, min_dist) }
                 })
-                .0.unwrap();
+                .0 {
 
-            let current_node_index = table.iter().position(|(n, _, _)| eq(*n, current_node)).unwrap();
-            table[current_node_index].2 = true;
+                let current_node_index = table.iter().position(|(n, _, _)| eq(*n, current_node)).unwrap();
+                table[current_node_index].2 = true;
 
-            // for all connections to current node, check if the route via the current node is the first or
-            // in case a route already exists, whether the current route is shorter. In both cases, update
-            // the distance of the connected node in our table
-            let curr_dist = table[current_node_index].1;
-            for (to, w) in self.connections(current_node, &weight) {
-                let to_node_index = table.iter().position(|(n, _, _)| eq(*n, to)).unwrap();
-                if !table[to_node_index].2 {
-                    let to_distance_via_curr_node = curr_dist + w;
-                    if to_distance_via_curr_node < table[to_node_index].1 {
-                        table[to_node_index].1 = to_distance_via_curr_node;
-                        if to_node_index == end_index && to_distance_via_curr_node == lower_bound {
-                            return lower_bound;
+                // for all connections to current node, check if the route via the current node is the first or
+                // in case a route already exists, whether the current route is shorter. In both cases, update
+                // the distance of the connected node in our table
+                let curr_dist = table[current_node_index].1;
+                for (to, w) in self.connections(current_node, &weight) {
+                    let to_node_index = table.iter().position(|(n, _, _)| eq(*n, to)).unwrap();
+                    if !table[to_node_index].2 {
+                        let to_distance_via_curr_node = curr_dist + w;
+                        if to_distance_via_curr_node < table[to_node_index].1 {
+                            table[to_node_index].1 = to_distance_via_curr_node;
+                            if to_node_index == end_index && to_distance_via_curr_node <= lower_bound {
+                                println!("Short circuitted");
+                                return Some(to_distance_via_curr_node);
+                            }
                         }
                     }
                 }
+            } else { // no current node means the graph is not connected and we processed all that is connected to start
+                break;
             }
         }
 
-        table[end_index].1
+        match table[end_index].1 {
+            usize::MAX => None,
+            x => Some(x),
+        }
     }
 }

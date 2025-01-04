@@ -52,7 +52,7 @@ fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>, min_ti
     //      if no connection is found in a subgraph of radius T/2 around the center of the points
     //      then the min_dist between those points must be > T
     //      So for T = 100, and points 2 steps apart, take a subgraph of radius 51 and find a connection
-    // Also, allow for a lower limit (carthesian distance in our example), that short cicuits
+    // Done: allow for a lower limit (carthesian distance in our example), that short cicuits
     // the distance calculation, because you know even smaller distance is impossible
     // Also, can Dijkstra be made more efficient in case the end node is known?
 
@@ -60,10 +60,11 @@ fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>, min_ti
     .enumerate()
     .inspect(|(i, _)| println!("Processing cheat {} of {}", i, cheats.len()))
     .map(|(_, cheat)| {
-        graph.minimum_distance(
+        graph.minimum_distance_bounded(
             |p| p.0 == cheat.0.0 && p.1 == cheat.0.1,
             |p| p.0 == cheat.1.0 && p.1 == cheat.1.1,
-            |from, to| base_weight(from, to)
+            |from, to| base_weight(from, to),
+            2
         )
     })
     .inspect(|cheat_dist| println!("Cheat distance: {}", cheat_dist))

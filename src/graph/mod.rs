@@ -25,11 +25,19 @@ impl <T> Graph<T>
         .collect()
     }
 
+    pub fn minimum_distance<S, E, W>(&self, is_start: S, is_end: E, weight: W) -> usize where
+        S: Fn(&T) -> bool,
+        E: Fn(&T) -> bool,
+        W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
+    {
+        self.minimum_distance_bounded(is_start, is_end, weight, 0)
+    }
+
     /// Dijkstra's algorithm to calculate minumum distance between `start` and `end`.
     /// Uses https://doc.rust-lang.org/std/ptr/fn.eq.html internally to compare &Ts, which is why the start and end
     /// are supplied as functions (because raw pointers should point to graph.nodes entries, which could easily be
     /// mistaken) - in case is_start / is_end does not return true for any graph node, this function will panic
-    pub fn minimum_distance<S, E, W>(&self, is_start: S, is_end: E, weight: W) -> usize where
+    pub fn minimum_distance_bounded<S, E, W>(&self, is_start: S, is_end: E, weight: W, lower_bound: usize) -> usize where
         S: Fn(&T) -> bool,
         E: Fn(&T) -> bool,
         W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
@@ -41,6 +49,8 @@ impl <T> Graph<T>
             .collect();
 
         let start_index = table.iter().position(|(n, _, _)| is_start(n)).unwrap();
+        let end_index = table.iter().position(|(n, _, _)| is_end(n)).unwrap();
+        
         table[start_index].1 = 0;
         
         while table.iter().any(|(_, _, visited)| !visited) {
@@ -66,12 +76,14 @@ impl <T> Graph<T>
                     let to_distance_via_curr_node = curr_dist + w;
                     if to_distance_via_curr_node < table[to_node_index].1 {
                         table[to_node_index].1 = to_distance_via_curr_node;
+                        if to_node_index == end_index && to_distance_via_curr_node == lower_bound {
+                            return lower_bound;
+                        }
                     }
                 }
             }
         }
 
-        let end_index = table.iter().position(|(n, _, _)| is_end(n)).unwrap();
         table[end_index].1
     }
 }

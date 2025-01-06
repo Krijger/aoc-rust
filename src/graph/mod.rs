@@ -30,7 +30,9 @@ impl <T> Graph<T>
         E: Fn(&T) -> bool,
         W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
     {
-        self.minimum_distance_bounded(is_start, is_end, weight, 0)
+        self.distances_private::<S, E, W>(is_start, weight, None, None).iter()
+        .find(|(node, dist)| is_end(node) && *dist < usize::MAX)
+        .map(|(_, dist)| *dist)
     }
 
     /// Dijkstra's algorithm to calculate minumum distance between `start` and `end`.
@@ -42,6 +44,23 @@ impl <T> Graph<T>
         E: Fn(&T) -> bool,
         W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
     {
+        self.distances_private::<S, E, W>(is_start, weight, Some(Box::new(&is_end)), Some(lower_bound)).iter()
+        .find(|(node, dist)| is_end(node) && *dist < usize::MAX)
+        .map(|(_, dist)| *dist)
+    }
+
+    pub fn distances<S, W>(&self, is_start: S, weight: W) -> Vec<(&T, usize)> where
+        S: Fn(&T) -> bool,
+        W: Fn(&T, &T) -> Option<usize>,
+    {
+        self.distances_private::<S, Box<dyn Fn(&T) -> bool>, W>(is_start, weight, None, None)
+    }
+        
+    fn distances_private<S, E, W>(&self, is_start: S, weight: W, end: Option<Box<&E>>, lower_bound: Option<usize>) -> Vec<(&T, usize)> where
+        S: Fn(&T) -> bool,
+        E: Fn(&T) -> bool,
+        W: Fn(&T, &T) -> Option<usize>,
+    {
         // `table` contains references to all nodes (table.0), and as prescribed by the Dijkstra's algorithm:
         // a distance (table.1), and the visited status (table.2)
         let mut table: Vec<(&T, usize, bool)> = self.nodes.iter()
@@ -49,11 +68,13 @@ impl <T> Graph<T>
             .collect();
 
         let start_index = table.iter().position(|(n, _, _)| is_start(n)).unwrap();
-        let end_index = table.iter().position(|(n, _, _)| is_end(n)).unwrap();
+        let end_index: Option<usize> = end.map(|is_end| {
+            table.iter().position(|(n, _, _)| is_end(n)).unwrap()
+        });
         
         table[start_index].1 = 0;
         
-        while table.iter().any(|(_, _, visited)| !visited) {
+        'algo: while table.iter().any(|(_, _, visited)| !visited) {
             if let Some(current_node) = table.iter()
                 .filter(|(_, _, visited)| !visited )
                 .fold((None, usize::MAX),
@@ -76,9 +97,11 @@ impl <T> Graph<T>
                         let to_distance_via_curr_node = curr_dist + w;
                         if to_distance_via_curr_node < table[to_node_index].1 {
                             table[to_node_index].1 = to_distance_via_curr_node;
-                            if to_node_index == end_index && to_distance_via_curr_node <= lower_bound {
-                                println!("Short circuitted");
-                                return Some(to_distance_via_curr_node);
+
+                            if end_index.is_some_and(|i| i == to_node_index) 
+                            && lower_bound.is_some_and(|x| x >= to_distance_via_curr_node) {
+                                // Stopping distance calculations, since end node closer than lower bound was found
+                                break 'algo;
                             }
                         }
                     }
@@ -88,9 +111,6 @@ impl <T> Graph<T>
             }
         }
 
-        match table[end_index].1 {
-            usize::MAX => None,
-            x => Some(x),
-        }
+        table.into_iter().map(|(node, dist, _)| (node, dist)).collect()
     }
 }

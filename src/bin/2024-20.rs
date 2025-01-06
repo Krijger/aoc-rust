@@ -21,7 +21,7 @@ fn graph_from_map(map: &Mapp<char>) -> Graph<Point> {
     graph
 }
 
-fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>, min_time_saved: usize) -> usize {
+fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>, min_time_saved: usize, max_cheat_length: usize) -> usize {
     let map = read_map(lines.map(Result::unwrap).collect());
     let start = map.find(|c| *c == 'S').unwrap();
     let is_start = |node: &Point| { 
@@ -45,7 +45,7 @@ fn calculate(lines: impl Iterator<Item = Result<String, std::io::Error>>, min_ti
     for n1 in &graph.nodes {
         for n2 in &graph.nodes {
             let carthesian_dist = n1.0.abs_diff(n2.0) + n1.1.abs_diff(n2.1);
-            let is_cheat = carthesian_dist == 2;
+            let is_cheat = carthesian_dist <= max_cheat_length;
             if is_cheat {
                 match (distance(n1), distance(n2)) {
                     (Some(d1), Some(d2)) if d2 > d1 => {
@@ -70,7 +70,19 @@ fn main() {
     match aoc::read_lines(file_path) {
         Ok(lines) => { 
             let start = std::time::Instant::now();
-            println!("Answer: {:?}", calculate(lines, 100));
+            println!("Answer: {:?}", calculate(lines, 100, 2));
+            println!("Time elapsed in expensive_function() is: {:?}", start.elapsed());
+        }
+        Err(e) => {
+            eprintln!("Problem reading file {}: {}", file_path, e);
+            exit(1);
+        }
+    }
+    
+    match aoc::read_lines(file_path) {
+        Ok(lines) => { 
+            let start = std::time::Instant::now();
+            println!("Answer: {:?}", calculate(lines, 100, 20));
             println!("Time elapsed in expensive_function() is: {:?}", start.elapsed());
         }
         Err(e) => {
@@ -104,10 +116,18 @@ mod tests {
         ";
 
     #[test]
-    fn test_regular_shortest_path() -> std::io::Result<()> {
-        assert_eq!(calculate(io_lines_from(INPUT), 2), 44);
-        assert_eq!(calculate(io_lines_from(INPUT), 12), 8);
-        assert_eq!(calculate(io_lines_from(INPUT), 64), 1);
+    fn test_a() -> std::io::Result<()> {
+        assert_eq!(calculate(io_lines_from(INPUT), 2, 2), 44);
+        assert_eq!(calculate(io_lines_from(INPUT), 12, 2), 8);
+        assert_eq!(calculate(io_lines_from(INPUT), 64, 2), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_b() -> std::io::Result<()> {
+        assert_eq!(calculate(io_lines_from(INPUT), 50, 20), 285);
+        assert_eq!(calculate(io_lines_from(INPUT), 70, 20), 41);
+        assert_eq!(calculate(io_lines_from(INPUT), 76,20 ), 3);
         Ok(())
     }
 }

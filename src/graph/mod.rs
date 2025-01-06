@@ -44,7 +44,7 @@ impl <T> Graph<T>
         E: Fn(&T) -> bool,
         W: Fn(&T, &T) -> Option<usize>, // W gives weight of connection between two nodes, or None if not connected
     {
-        self.distances_private::<S, E, W>(is_start, weight, Some(Box::new(&is_end)), Some(lower_bound)).iter()
+        self.distances_private::<S, E, W>(is_start, weight, Some(&is_end), Some(lower_bound)).iter()
         .find(|(node, dist)| is_end(node) && *dist < usize::MAX)
         .map(|(_, dist)| *dist)
     }
@@ -56,7 +56,7 @@ impl <T> Graph<T>
         self.distances_private::<S, Box<dyn Fn(&T) -> bool>, W>(is_start, weight, None, None)
     }
         
-    fn distances_private<S, E, W>(&self, is_start: S, weight: W, end: Option<Box<&E>>, lower_bound: Option<usize>) -> Vec<(&T, usize)> where
+    fn distances_private<S, E, W>(&self, is_start: S, weight: W, end: Option<&E>, lower_bound: Option<usize>) -> Vec<(&T, usize)> where
         S: Fn(&T) -> bool,
         E: Fn(&T) -> bool,
         W: Fn(&T, &T) -> Option<usize>,
